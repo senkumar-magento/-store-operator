@@ -1,7 +1,7 @@
 apiVersion: stores.store.com/v1
 kind: Store
 metadata:
-  name: store-sample
+  name: store-123
 spec:
   # Add fields here
   app: "localhost:5000/demo-webapp"

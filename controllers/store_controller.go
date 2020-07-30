@@ -45,7 +45,6 @@ func (r *StoreReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	context := context.Background()
 	log := r.Log.WithValues("store", req.NamespacedName)
 
-	// your logic here
 	// Fetch the App instance.
 	app := &storesv1.Store{}
 	err := r.Get(context, req.NamespacedName, app)
