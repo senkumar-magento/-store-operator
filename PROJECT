@@ -1,0 +1,7 @@
+domain: store.com
+repo: store.com
+resources:
+- group: stores
+  kind: Store
+  version: v1
+version: "2"

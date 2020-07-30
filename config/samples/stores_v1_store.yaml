@@ -1,0 +1,7 @@
+apiVersion: stores.store.com/v1
+kind: Store
+metadata:
+  name: store-sample
+spec:
+  # Add fields here
+  foo: bar
