@@ -18,8 +18,10 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,12 +54,29 @@ func (r *StoreReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("Store does n't exist or may be deleted ...")
+			// Return and don't requeue
 			return ctrl.Result{}, nil
 		}
+		// Return and requeue
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Provisioning the Store ...")
+	log.Info(fmt.Sprintf("Provising the store - %s .... ", app.Name))
+	// Check if the deployment already exists, if not create a new deployment.
+	found := &appsv1.Deployment{}
+	err = r.Get(context, types.NamespacedName{Name: fmt.Sprintf("webapp-%s", app.Name), Namespace: app.Namespace}, found)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Define and create a new deployment.
+			dep := r.deploymentForApp(app)
+			if err = r.Create(context, dep); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{Requeue: true}, nil
+		} else {
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -71,10 +90,10 @@ func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *StoreReconciler) deploymentForApp(m *storesv1.Store) *appsv1.Deployment {
 	ls := labelsForApp(m.Name)
 	var size int32 = 2
-
+	var objectMetaName = fmt.Sprintf("webapp-%s", m.Name)
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "webapp",
+			Name:      objectMetaName,
 			Namespace: m.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -89,11 +108,7 @@ func (r *StoreReconciler) deploymentForApp(m *storesv1.Store) *appsv1.Deployment
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Image: "localhost:5000/demo-webapp",
-						Name:  "webapp",
-						Ports: []corev1.ContainerPort{{
-							ContainerPort: 9000,
-							Name:          "webapp",
-						}},
+						Name:  objectMetaName,
 					}},
 				},
 			},
@@ -126,10 +141,6 @@ func (r *StoreReconciler) deploymentForRedis(m *storesv1.Store) *appsv1.Deployme
 					Containers: []corev1.Container{{
 						Image: "localhost:5000/redis",
 						Name:  m.Name,
-						Ports: []corev1.ContainerPort{{
-							ContainerPort: 9000,
-							Name:          m.Name,
-						}},
 					}},
 				},
 			},
