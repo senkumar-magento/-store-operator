@@ -78,6 +78,20 @@ func (r *StoreReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
+	err = r.Get(context, types.NamespacedName{Name: fmt.Sprintf("redis-%s", app.Name), Namespace: app.Namespace}, found)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Define and create a new deployment.
+			dep := r.deploymentForRedis(app)
+			if err = r.Create(context, dep); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{Requeue: true}, nil
+		} else {
+			return ctrl.Result{}, err
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -121,11 +135,11 @@ func (r *StoreReconciler) deploymentForApp(m *storesv1.Store) *appsv1.Deployment
 
 func (r *StoreReconciler) deploymentForRedis(m *storesv1.Store) *appsv1.Deployment {
 	ls := labelsForApp(m.Name)
-	var size int32 = 2
-
+	var size int32 = 1
+	var objectMetaName = fmt.Sprintf("redis-%s", m.Name)
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.Name,
+			Name:      objectMetaName,
 			Namespace: m.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -140,7 +154,7 @@ func (r *StoreReconciler) deploymentForRedis(m *storesv1.Store) *appsv1.Deployme
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Image: "localhost:5000/redis",
-						Name:  m.Name,
+						Name:  objectMetaName,
 					}},
 				},
 			},
