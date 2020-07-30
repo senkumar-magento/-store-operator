@@ -29,7 +29,8 @@ type StoreSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Store. Edit Store_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	App   string `json:"app,omitempty"`
+	Redis string `json:"redis,omitempty"`
 }
 
 // StoreStatus defines the observed state of Store
